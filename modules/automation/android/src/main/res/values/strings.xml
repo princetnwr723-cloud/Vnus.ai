@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">
+        Agentic Vnus uses this permission to read on-screen content and perform
+        taps/text entry ONLY for tasks you explicitly ask it to automate. It does
+        not run in the background without an active task, and does not collect
+        or transmit screen content anywhere except to the AI provider you connected,
+        for the specific task you requested.
+    </string>
+</resources>
