@@ -1,13 +1,9 @@
 name: Build Android APK (EAS Cloud)
 
-# Runs entirely on GitHub's + Expo's cloud servers.
-# You never need Android Studio, a local SDK, or even a PC —
-# push to GitHub (even from the GitHub mobile app on iPad) and this fires.
-
 on:
   push:
     branches: [main]
-  workflow_dispatch: {} # lets you trigger it manually from the GitHub app too
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -21,6 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install EAS CLI
         run: npm install -g eas-cli
@@ -28,14 +25,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # EXPO_TOKEN must be added as a GitHub repo secret:
-      # Settings → Secrets and variables → Actions → New repository secret
-      # Get the token from https://expo.dev/accounts/[you]/settings/access-tokens
+      - name: Verify Expo config
+        run: npx expo config
+
       - name: Build APK on EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform android --profile preview --non-interactive --no-wait
-
-      # This kicks off the build on Expo's servers and exits — the actual
-      # build (10-20 min) happens on EAS infrastructure, not this runner.
-      # Track progress and download the APK from https://expo.dev
