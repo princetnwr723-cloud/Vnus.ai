@@ -1,9 +1,9 @@
 // src/services/nativeAutomation.ts
-// Thin typed wrapper around the native AutomationModule bridge.
+// Thin typed wrapper around the native AutomationModule (Expo Modules API).
 
-import { NativeModules } from "react-native";
+import { requireNativeModule } from "expo-modules-core";
 
-const { AutomationModule } = NativeModules;
+const AutomationModule = requireNativeModule("AutomationModule");
 
 export interface ScreenNode {
   text: string;
@@ -12,7 +12,7 @@ export interface ScreenNode {
 
 export const NativeAutomation = {
   isServiceEnabled: (): Promise<boolean> => AutomationModule.isServiceEnabled(),
-  openAccessibilitySettings: (): void => AutomationModule.openAccessibilitySettings(),
+  openAccessibilitySettings: (): Promise<void> => AutomationModule.openAccessibilitySettings(),
   dumpScreenText: (): Promise<ScreenNode[]> => AutomationModule.dumpScreenText(),
   clickByText: (target: string): Promise<boolean> => AutomationModule.clickByText(target),
   typeIntoFocused: (text: string): Promise<boolean> => AutomationModule.typeIntoFocused(text),
