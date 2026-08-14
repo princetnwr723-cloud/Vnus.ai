@@ -1,8 +1,13 @@
+# .github/workflows/build-android.yml
 name: Build Android APK (EAS Cloud)
 
 # Runs entirely on GitHub's + Expo's cloud servers.
 # You never need Android Studio, a local SDK, or even a PC —
 # push to GitHub (even from the GitHub mobile app on iPad) and this fires.
+#
+# This workflow WAITS for the EAS build to finish (10-20 min) and then
+# downloads the finished .apk directly into GitHub Actions "Artifacts" —
+# no need to visit expo.dev separately to grab the file.
 
 on:
   push:
@@ -11,7 +16,7 @@ on:
 
 jobs:
   build:
-    name: Trigger EAS Build
+    name: Build & Fetch APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -35,11 +40,41 @@ jobs:
         run: npx expo config --json
         continue-on-error: true
 
-      - name: Build APK on EAS
+      # --wait makes this step block until the cloud build finishes
+      # (instead of --no-wait which just fires and forgets).
+      # --json lets us parse the finished build's artifact URL below.
+      - name: Build APK on EAS (waits for completion)
+        id: eas_build
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform android --profile preview --non-interactive --no-wait
+        run: |
+          eas build --platform android --profile preview --non-interactive --wait --json > build-result.json
+          cat build-result.json
 
-      # This kicks off the build on Expo's servers and exits — the actual
-      # build (10-20 min) happens on EAS infrastructure, not this runner.
-      # Track progress and download the APK from https://expo.dev
+      - name: Extract APK download URL
+        id: get_url
+        run: |
+          APK_URL=$(node -e "
+            const fs = require('fs');
+            const raw = fs.readFileSync('build-result.json', 'utf8');
+            const data = JSON.parse(raw);
+            const build = Array.isArray(data) ? data[0] : data;
+            if (!build || !build.artifacts || !build.artifacts.buildUrl) {
+              console.error('No artifact URL found — build likely failed. Status: ' + (build && build.status));
+              process.exit(1);
+            }
+            console.log(build.artifacts.buildUrl);
+          ")
+          echo "apk_url=$APK_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Download the APK
+        run: curl -L "${{ steps.get_url.outputs.apk_url }}" -o agentic-vnus.apk
+
+      # This is the key step — makes the APK show up as a downloadable
+      # file directly on this workflow run's summary page in GitHub.
+      - name: Upload APK as GitHub Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-vnus-apk
+          path: agentic-vnus.apk
+          retention-days: 30
