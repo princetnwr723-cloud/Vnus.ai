@@ -1,17 +1,24 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+
 def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
 
+group = 'com.agenticvnus.automation'
+version = '1.0.0'
+
 android {
-    namespace "com.agenticvnus.automation"
-    compileSdkVersion safeExtGet('compileSdkVersion', 34)
+    namespace "expo.modules.automation"
+    compileSdkVersion safeExtGet("compileSdkVersion", 34)
 
     defaultConfig {
-        minSdkVersion safeExtGet('minSdkVersion', 23)
-        targetSdkVersion safeExtGet('targetSdkVersion', 34)
+        minSdkVersion safeExtGet("minSdkVersion", 23)
+        targetSdkVersion safeExtGet("targetSdkVersion", 34)
     }
 
     compileOptions {
@@ -22,23 +29,8 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-    // This module's res/ folder is only kept as a reference — the actual
-    // xml/values files get copied into the app's own res/ folder by the
-    // config plugin. Excluding res here avoids duplicate-resource merge
-    // conflicts between this library and the app.
-    sourceSets {
-        main {
-            res.srcDirs = []
-        }
-    }
-}
-
-repositories {
-    google()
-    mavenCentral()
 }
 
 dependencies {
-    implementation 'com.facebook.react:react-android'
+    implementation project(':expo-modules-core')
 }
