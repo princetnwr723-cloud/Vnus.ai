@@ -43,3 +43,5 @@ function withAccessibilityService(config) {
     return config;
   });
 }
+
+module.exports = withAccessibilityService;
