@@ -17,6 +17,9 @@ import { getApiKey } from "./secureStorage";
 import type { ChatMessage } from "./providers/types";
 
 const MAX_STEPS = 15;
+// Keep only the last few screen-read turns in history so prompt size
+// doesn't grow unbounded across 15 steps (each screen dump can be large).
+const MAX_HISTORY_TURNS = 6;
 
 export interface AgentStepResult {
   step: number;
@@ -37,6 +40,22 @@ Respond with ONLY valid JSON, one action at a time:
 
 Only ever output one action. Never explain outside the JSON. If the task is
 complete or cannot proceed safely, use "done".`;
+
+/** Extracts the first balanced {...} JSON object from a model response,
+ *  rather than a greedy regex that can swallow stray braces in reasoning text. */
+function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
 
 export async function runAgentTask(
   task: string,
@@ -67,12 +86,18 @@ export async function runAgentTask(
       content: `TASK: ${task}\n\nCURRENT SCREEN:\n${screenSummary || "(empty/unrecognized screen)"}\n\nWhat's the next single action?`,
     });
 
-    const response = await adapter.chat(apiKey, model, history);
-    const match = response.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error(`Model did not return valid JSON: ${response.slice(0, 200)}`);
+    // Trim history: always keep the system prompt (index 0) + only the
+    // most recent turns, so token usage doesn't grow unbounded step-over-step.
+    if (history.length > 1 + MAX_HISTORY_TURNS * 2) {
+      history.splice(1, history.length - (1 + MAX_HISTORY_TURNS * 2));
+    }
 
-    const parsed = JSON.parse(match[0]);
-    history.push({ role: "assistant", content: match[0] });
+    const response = await adapter.chat(apiKey, model, history);
+    const jsonStr = extractFirstJsonObject(response);
+    if (!jsonStr) throw new Error(`Model did not return valid JSON: ${response.slice(0, 200)}`);
+
+    const parsed = JSON.parse(jsonStr);
+    history.push({ role: "assistant", content: jsonStr });
 
     onStep?.({
       step,
