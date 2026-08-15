@@ -11,6 +11,7 @@
     "build:android:production": "eas build --platform android --profile production"
   },
   "dependencies": {
+    "automation": "file:./modules/automation",
     "expo": "~51.0.0",
     "expo-secure-store": "~13.0.0",
     "expo-notifications": "~0.28.0",
