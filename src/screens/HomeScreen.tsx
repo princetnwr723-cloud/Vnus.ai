@@ -12,14 +12,8 @@ export default function HomeScreen({ navigation }: any) {
   const [serviceEnabled, setServiceEnabled] = useState(false);
 
   useEffect(() => {
-  NativeAutomation.isServiceEnabled()
-    .then(setServiceEnabled)
-    .catch((err) => {
-      // Surface the failure instead of letting it crash silently —
-      // this tells us definitively if the native module is missing.
-      throw new Error(`NativeAutomation failed: ${err?.message || err}`);
-    });
-}, []);
+    NativeAutomation.isServiceEnabled().then(setServiceEnabled);
+  }, []);
 
   const handleEnableService = () => {
     NativeAutomation.openAccessibilitySettings();
